@@ -42,10 +42,34 @@ int main(int argc, char *argv[])
     for (int i = 0; i < arr_size - 1; i++) {
         for (int j = 0; j < arr_size - i - 1; j++) {
             asm volatile(
-                // Your code
+                // Your code   
+                "xori x9, x0, -1\n\t" // create an all one register (x9)
                 
+                /* move pointer: p_a + (j * 4) */
+                "slli x20, %[j], 2\n\t" // j*4
+                "add x20, %[p_a], x20\n\t" // copy base address to x20 register 
 
-            "");
+                /* Load array element */
+                "lw x18, 0(x20)\n\t" // load arr[j] to x18 register
+                "lw x19, 4(x20)\n\t" // load arr[j+1] to x19 register
+                
+                /* jump if greater or equal to */
+                "slt x5, x19, x18\n\t" // if arr[j+1] < arr[j], set x5 to 1, otherwise, 0
+                "beq x5, x0, Exit\n\t" // if x5 == 0, Loop
+
+                /* Swap(arr[j], arr[j+1]) */
+                "and x6, x19, x9\n\t" // copy arr[j+1] to temp register (x6)
+                "and x19, x18, x9\n\t" // arr[j+1] = arr[j]
+                "and x18, x6, x9\n\t" // arr[j] = temp
+
+                /* store swapped element back to memory */
+                "sw x18, 0(x20)\n\t"
+                "sw x19, 4(x20)\n\t"
+    
+                "Exit:\n\t"
+
+                :[p_a] "+r"(p_a), [j] "+r"(j)
+            );
         }
     }
     p_a = &arr[0];
