@@ -6,7 +6,29 @@ int arraySearch(int *p_a, int arr_size, int target)
 
     asm volatile(
         // Your code
-        "");
+        "addi x19, x0, -1\n\t" // create a index i(x19), start from -1
+
+        "Loop:\n\t" "addi x19, x19, 1\n\t" // update index i(x19)
+                    "beq x19, %[arr_size], Exit\n\t" // check index i(x19) is in range (< arr_size)
+                    "slli x5, x19, 2\n\t" // index i(x19) * 4, for moving to the next element    
+                    "add x5, %[p_a], x5\n\t" // p_a + i (move to the next element)
+
+                    "lw x18, 0(x5)\n\t" // load arr[i] to x18 register
+                    "bne x18, %[target], Loop\n\t" // if arr[i] != target, continue
+                    "add %[result], x0, x19\n\t" // assign index to result
+        "Exit:\n\t"
+
+        :[p_a] "+r"(p_a), [target] "+r"(target), [result] "+r"(result), [arr_size] "+r"(arr_size)
+    );
+
+/*
+for (int i = 0; i < arr_size; i++){
+    if (arr[i] != target)
+        continue;
+    else 
+        result = i;    
+}
+*/
 
     return result;
 }
