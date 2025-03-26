@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+/* Because of padding, int will be +4, and then place pointer(8 bytes) */
 typedef struct Node {
     int data;
     struct Node *next;
@@ -13,7 +14,23 @@ void splitList(Node *head, Node **firstHalf, Node **secondHalf)
         /*
         Block A (splitList), which splits the linked list into two halves
         */
-        "");
+        
+        /* Find mid */
+        "ld %[firstHalf], 0(%[head])\n\t" // firstHalf = head
+        "ld %[secondHalf], 8(%[head])\n\t"  // secondHalf = head -> next
+        
+        "Loop:\n\t" "beq %[firstHalf], x0, Exit\n\t"    // if firstHalf == NULL, break
+                    "ld x5, 8(%[firstHalf])\n\t"    // x5 = firstHalf -> next
+                    "beq x5, x0, Exit\n\t"  // if firstHalf -> next == NULL, break
+                    
+                    "ld %[firstHalf], 16(%[firstHalf])\n\t" // firstHalf = firstHalf -> next -> next
+                    "ld %[secondHalf], 8(%[secondHalf])\n\t"    // secondHalf = secondHalf -> next
+        
+        "Exit:\n\t"
+                    "ld %[firstHalf], 0(%[head])\n\t" // recover the firstHalf 
+
+        :[firstHalf] "+r"(firstHalf), [head] "+r"(head), [secondHalf] "+r"(secondHalf)
+    );
 }
 
 // Merge two sorted linked lists
@@ -26,7 +43,32 @@ Node *mergeSortedLists(Node *a, Node *b)
         /*
         Block B (mergeSortedList), which merges two sorted lists into one
         */
-        "");
+        
+        "Loop:\n\t" "beq %[a], x0, Exit\n\t"    // check if L is NULL
+                    "beq %[b], x0, Exit\n\t"    // check if R is NULL
+
+                    "ld x5, 0(%[a])\n\t"    // load L[i] to compare to R[j]
+                    "ld x6, 0(%[b])\n\t"    // load R[j] to compare to L[i]
+
+                    "slt x7, x6, x5\n\t"    // if R[j] < L[i], set x7 as 1, otherwise 0
+                    "beq x7, x0, Set_L\n\t" // if R[j] >= L[i], place L[i] in the result list 
+                    "beq x0, x0, Set_R\n\t" // if R[j] < L[i], place R[j] in the result list
+
+        "Set_R:\n\t" "ld %[result], 0(%[b])\n\t"    // result point to the smallest number of node
+                     "ld %[tail], 8(%[result])\n\t" // move to the next node
+                     "beq x0, x0, \n\t"
+
+        "Set_L:\n\t" "ld %[result], 0(%[a])\n\t"    // result point to the smallest number of node
+                     "ld %[tail], 8(%[result])" // move to the next node
+                     "beq x0, x0, \n\t"
+
+        "Choose:\n\t" "beq %[tail], x0, Exit\n\t"             
+                      ""
+
+        "Exit:\n\t"
+    
+        :[result] "+r"(result), [tail] "+r"(tail), [a] "+r"(a), [b] "+r"(b)
+    );
 
     return result;
 }
@@ -82,7 +124,10 @@ int main(int argc, char *argv[])
             Block C (Move to the next node), which updates the pointer to
             traverse the linked list
             */
-            "");
+            "ld %[cur], 8(%[cur])\n\t"
+
+            :[cur]  "+r"(cur)
+        );
     }
     printf("\n");
     return 0;
