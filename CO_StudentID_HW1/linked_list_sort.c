@@ -17,24 +17,24 @@ void splitList(Node *head, Node **firstHalf, Node **secondHalf)
         
         /* Find mid */
         "ld x28, 8(%[head])\n\t"  // fast = head->next
-        "add x29, %[head], x0\n\t"  // slow = head
+        "add x29, %[head], x0\n\t"  // slow = head (slow will be the mid)
 
-        "Loop_A:\n\t" "beq x28, x0, Exit_A\n\t"  // check if firstHalf->next is NULL 
-                      "ld x5, 8(x28)\n\t" // firstHalf point to firstHalf->next->next
-                      "beq x5, x0, Exit_A\n\t"    // check if firstHalf->next->next is NULL
+        "Loop_A:\n\t" "beq x28, x0, Exit_A\n\t"  // check if fast is NULL 
+                      "ld x5, 8(x28)\n\t" // firstHalf point to fast->next
+                      "beq x5, x0, Exit_A\n\t"    // check if fast->next is NULL
                       
-                      "ld x29, 8(x29)\n\t"  // secondHalf = secondHalf->next
-                      "ld x28, 8(x28)\n\t"
-                      "ld x28, 8(x28)\n\t"
+                      "ld x29, 8(x29)\n\t"  // slow = slow->next
+                      "ld x28, 8(x28)\n\t"  // fast = fast->next
+                      "ld x28, 8(x28)\n\t"  // fast = fast->next
                       
-                      "beq x0, x0, Loop_A\n\t"
+                      "beq x0, x0, Loop_A\n\t"  // Loop
 
-        "Exit_A:\n\t" "add x6, %[head], x0\n\t"
-                      "sd x6, 0(%[firstHalf])\n\t"              
+        "Exit_A:\n\t" "add x6, %[head], x0\n\t" // copy the address head point to to x6
+                      "sd x6, 0(%[firstHalf])\n\t"  // firstHalf point  to the first node              
         
-                      "ld x6, 8(x29)\n\t"
-                      "sd x6, 0(%[secondHalf])\n\t"
-                      "sd x0, 8(x29)\n\t"
+                      "ld x6, 8(x29)\n\t"   // slow = slow->next (mid = mid->next)
+                      "sd x6, 0(%[secondHalf])\n\t" // secondHalf point to slow->next
+                      "sd x0, 8(x29)\n\t"   // cut off the list into two (set slow->next to 0)
 
         :[firstHalf] "+r"(firstHalf), [head] "+r"(head), [secondHalf] "+r"(secondHalf)
     );
@@ -51,45 +51,45 @@ Node *mergeSortedLists(Node *a, Node *b)
         Block B (mergeSortedList), which merges two sorted lists into one
         */
         
-        "lw x18, 0(%[a])\n\t"
-        "lw x19, 0(%[b])\n\t"
-        "slt x5, x18, x19\n\t"
-        "bne x5, x0, Set_L\n\t"
-        "beq x5, x0, Set_R\n\t"
+        "lw x18, 0(%[a])\n\t"   // load a->data to x18
+        "lw x19, 0(%[b])\n\t"   // load b->data to x19
+        "slt x5, x18, x19\n\t"  // if a->data < b->data, set x5 to 1, otherwise, 0
+        "bne x5, x0, Set_L\n\t" // if a->data < b->data, jump to Set_L (initial result & tail)
+        "beq x5, x0, Set_R\n\t" // if a->data >= b->data, jump to Set_R (initial result & tail) 
 
-        "Set_L:\n\t" "add %[result], %[a], x0\n\t"
-                     "add %[tail], %[a], x0\n\t"
-                     "beq x0, x0, Loop_B\n\t"
+        "Set_L:\n\t" "add %[result], %[a], x0\n\t"  // result point to the left and the first node
+                     "add %[tail], %[a], x0\n\t"    // tail point to the left and the first node
+                     "beq x0, x0, Loop_B\n\t"   // jump to the main Loop
 
-        "Set_R:\n\t" "add %[result], %[b], x0\n\t"
-                     "add %[tail], %[b], x0\n\t"
-                     "beq x0, x0, Loop_B\n\t"
+        "Set_R:\n\t" "add %[result], %[b], x0\n\t"  // result point to the right and the first node
+                     "add %[tail], %[b], x0\n\t"    // tail point to the right and the first node
+                     "beq x0, x0, Loop_B\n\t"   // jump to the main Loop
                      
-        "Loop_B:\n\t" "beq %[a], x0, Exit_BR\n\t"
-                      "beq %[b], x0, Exit_BL\n\t"
-                      "lw x18, 0(%[a])\n\t"
-                      "lw x19, 0(%[b])\n\t"
-                      "slt x5, x18, x19\n\t"
-                      "bne x5, x0, Add_L\n\t"
-                      "beq x5, x0, Add_R\n\t"
+        "Loop_B:\n\t" "beq %[a], x0, Exit_BR\n\t"   // if "a" is empty, jump to Exit_BR (link remaining "b" to tail)
+                      "beq %[b], x0, Exit_BL\n\t"   // if "b" is empty, jump to Exit_BL (link remaining "a" to tail)
+                      "lw x18, 0(%[a])\n\t" // load a->data to x18 
+                      "lw x19, 0(%[b])\n\t" // load b->data to x19
+                      "slt x5, x18, x19\n\t"    // if a->data < b->data, set x5 to 1, otherwise, 0
+                      "bne x5, x0, Add_L\n\t"   // if a->data < b->data, jump to Add_L (add the first node of "a" to result list)
+                      "beq x5, x0, Add_R\n\t"   // if a->data >= b->data, jump to Add_R (add the first node of "b" to result list)
                       
-        "Add_L:\n\t" "add x6, %[a], x0\n\t" // x6 = a
-                     "ld %[a], 8(%[a])\n\t" // move to the next node
-                     "sd x6, 8(%[tail])\n\t"    // tail->next = a
-                     "ld %[tail], 8(%[tail])\n\t"
-                     "beq x0, x0, Loop_B\n\t"
+        "Add_L:\n\t" "add x6, %[a], x0\n\t" // x6 = the address "a" point to
+                     "ld %[a], 8(%[a])\n\t" // "a" move to the next node
+                     "sd x6, 8(%[tail])\n\t"    // set tail->next to the first node of a
+                     "ld %[tail], 8(%[tail])\n\t"   // tail momve to the next node (updated node)
+                     "beq x0, x0, Loop_B\n\t"   // Loop until one of the lists is empty
                      
-        "Add_R:\n\t" "add x6, %[b], x0\n\t"
-                     "ld %[b], 8(%[b])\n\t"
-                     "sd x6, 8(%[tail])\n\t"
-                     "ld %[tail], 8(%[tail])\n\t"
-                     "beq x0, x0, Loop_B\n\t"
+        "Add_R:\n\t" "add x6, %[b], x0\n\t" // x6 = the address "b" point to
+                     "ld %[b], 8(%[b])\n\t" // "b" move to the next node
+                     "sd x6, 8(%[tail])\n\t"    // set tail->next to the first node of b
+                     "ld %[tail], 8(%[tail])\n\t"   // tail momve to the next node (updated node)
+                     "beq x0, x0, Loop_B\n\t"   // Loop until one of the lists is empty
                      
-        "Exit_BR:\n\t" "sd %[b], 8(%[tail])\n\t"
-                       "beq x0, x0, Exit_B\n\t"
+        "Exit_BR:\n\t" "sd %[b], 8(%[tail])\n\t"    // tail->next = linked list "b" 
+                       "beq x0, x0, Exit_B\n\t" // Exit
 
-        "Exit_BL:\n\t" "sd %[a], 8(%[tail])\n\t"
-                       "beq x0, x0, Exit_B\n\t"
+        "Exit_BL:\n\t" "sd %[a], 8(%[tail])\n\t"    // tail->next = linked list "a"  
+                       "beq x0, x0, Exit_B\n\t" // Exit
                        
         "Exit_B:\n\t"               
 
@@ -150,7 +150,8 @@ int main(int argc, char *argv[])
             Block C (Move to the next node), which updates the pointer to
             traverse the linked list
             */
-            "ld %[cur], 8(%[cur])\n\t"
+
+            "ld %[cur], 8(%[cur])\n\t"  // move to the next node
 
             :[cur]  "+r"(cur)
         );
