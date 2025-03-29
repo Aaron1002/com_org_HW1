@@ -1,8 +1,3 @@
----
-title: Com_org HW1
-
----
-
 # Com_org HW1
 
 ## Array Bubble Sort
