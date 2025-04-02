@@ -16,6 +16,7 @@ void splitList(Node *head, Node **firstHalf, Node **secondHalf)
         */
         
         /* Find mid */
+        "beq %[head], x0, Exit\n\t"
         "ld x28, 8(%[head])\n\t"  // fast = head->next
         "add x29, %[head], x0\n\t"  // slow = head (slow will be the mid)
 
@@ -36,6 +37,8 @@ void splitList(Node *head, Node **firstHalf, Node **secondHalf)
                       "sd x6, 0(%[secondHalf])\n\t" // secondHalf point to slow->next
                       "sd x0, 8(x29)\n\t"   // cut off the list into two (set slow->next to 0)
 
+        "Exit:\n\t"
+
         :[firstHalf] "+r"(firstHalf), [head] "+r"(head), [secondHalf] "+r"(secondHalf)
     );
 }
@@ -51,6 +54,8 @@ Node *mergeSortedLists(Node *a, Node *b)
         Block B (mergeSortedList), which merges two sorted lists into one
         */
         
+        "beq %[a], x0, Set_R\n\t"
+        "beq %[b], x0, Set_L\n\t" 
         "lw x18, 0(%[a])\n\t"   // load a->data to x18
         "lw x19, 0(%[b])\n\t"   // load b->data to x19
         "slt x5, x18, x19\n\t"  // if a->data < b->data, set x5 to 1, otherwise, 0
@@ -59,10 +64,12 @@ Node *mergeSortedLists(Node *a, Node *b)
 
         "Set_L:\n\t" "add %[result], %[a], x0\n\t"  // result point to the left and the first node
                      "add %[tail], %[a], x0\n\t"    // tail point to the left and the first node
+                     "ld %[a], 8(%[a])\n\t"
                      "beq x0, x0, Loop_B\n\t"   // jump to the main Loop
 
         "Set_R:\n\t" "add %[result], %[b], x0\n\t"  // result point to the right and the first node
                      "add %[tail], %[b], x0\n\t"    // tail point to the right and the first node
+                     "ld %[b], 8(%[b])\n\t"
                      "beq x0, x0, Loop_B\n\t"   // jump to the main Loop
                      
         "Loop_B:\n\t" "beq %[a], x0, Exit_BR\n\t"   // if "a" is empty, jump to Exit_BR (link remaining "b" to tail)
@@ -71,7 +78,7 @@ Node *mergeSortedLists(Node *a, Node *b)
                       "lw x19, 0(%[b])\n\t" // load b->data to x19
                       "slt x5, x18, x19\n\t"    // if a->data < b->data, set x5 to 1, otherwise, 0
                       "bne x5, x0, Add_L\n\t"   // if a->data < b->data, jump to Add_L (add the first node of "a" to result list)
-                      "beq x5, x0, Add_R\n\t"   // if a->data >= b->data, jump to Add_R (add the first node of "b" to result list)
+                      "beq x0, x0, Add_R\n\t"   // if a->data >= b->data, jump to Add_R (add the first node of "b" to result list)
                       
         "Add_L:\n\t" "add x6, %[a], x0\n\t" // x6 = the address "a" point to
                      "ld %[a], 8(%[a])\n\t" // "a" move to the next node
