@@ -66,7 +66,7 @@ Node *mergeSortedLists(Node *a, Node *b)
                      "add %[tail], %[a], x0\n\t"    // tail point to the left and the first node
                      "ld %[a], 8(%[a])\n\t"
                      "beq x0, x0, Loop_B\n\t"   // jump to the main Loop
-
+ 
         "Set_R:\n\t" "add %[result], %[b], x0\n\t"  // result point to the right and the first node
                      "add %[tail], %[b], x0\n\t"    // tail point to the right and the first node
                      "ld %[b], 8(%[b])\n\t"
